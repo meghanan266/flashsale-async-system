@@ -1,0 +1,25 @@
+FROM golang:1.25 AS builder
+
+WORKDIR /build
+
+# Copy and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/processor-binary ./processor/main.go
+
+# Final stage
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+
+# Copy the binary directly to root
+COPY --from=builder /tmp/processor-binary /processor
+
+# Make executable
+RUN chmod +x /processor
+
+CMD ["/processor"]
